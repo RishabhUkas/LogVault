@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LogVault — Blockchain-Based Tamper-Proof Security Logging</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ============================ SIDEBAR ============================ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">◈</span>
+      <div class="brand-text">
+        <span class="brand-name">LOGVAULT</span>
+        <span class="brand-tag">tamper-evident logging</span>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-item is-active" data-view="overview">
+        <span class="nav-index">01</span> Overview
+      </button>
+      <button class="nav-item" data-view="blockchain">
+        <span class="nav-index">02</span> Blockchain
+      </button>
+      <button class="nav-item" data-view="attack">
+        <span class="nav-index">03</span> Attacker Simulation
+      </button>
+      <button class="nav-item" data-view="verify">
+        <span class="nav-index">04</span> Verification
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="status-line"><span class="dot dot-green"></span> IDS <em>ACTIVE</em></div>
+      <div class="status-line"><span class="dot dot-green"></span> LOGGING <em>ACTIVE</em></div>
+      <div class="status-line" id="status-chain"><span class="dot dot-green"></span> BLOCKCHAIN <em>VALID</em></div>
+      <div class="status-line" id="status-integrity"><span class="dot dot-green"></span> INTEGRITY <em>VERIFIED</em></div>
+      <button id="reset-btn" class="btn btn-ghost btn-block">Reset system</button>
+    </div>
+  </aside>
+
+  <!-- ============================ MAIN ============================ -->
+  <main class="main">
+
+    <!-- ---------------- OVERVIEW ---------------- -->
+    <section class="view is-active" id="view-overview">
+      <header class="view-header">
+        <div>
+          <h1>Security dashboard</h1>
+          <p class="sub">An attacker can rewrite a log file. They cannot silently rewrite a hash chain.</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary" id="gen-event-btn">Generate event</button>
+          <button class="btn btn-primary" id="gen-intrusion-btn">Simulate intrusion</button>
+        </div>
+      </header>
+
+      <div class="stat-row">
+        <div class="stat"><span class="stat-value" id="stat-total">0</span><span class="stat-label">Total events</span></div>
+        <div class="stat"><span class="stat-value stat-critical" id="stat-critical">0</span><span class="stat-label">Critical events</span></div>
+        <div class="stat"><span class="stat-value" id="stat-blocks">1</span><span class="stat-label">Blockchain blocks</span></div>
+        <div class="stat"><span class="stat-value stat-good" id="stat-verified">0</span><span class="stat-label">Verified logs</span></div>
+        <div class="stat"><span class="stat-value stat-bad" id="stat-tampered">0</span><span class="stat-label">Tampered logs</span></div>
+        <div class="stat"><span class="stat-value stat-bad" id="stat-missing">0</span><span class="stat-label">Missing logs</span></div>
+      </div>
+
+      <div class="split">
+        <div class="panel panel-events">
+          <div class="panel-head">
+            <h2>Security events</h2>
+            <span class="panel-hint" id="events-count">0 events</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Time</th><th>Event ID</th><th>Source IP</th><th>Event</th><th>Severity</th><th>Status</th></tr>
+              </thead>
+              <tbody id="events-table-body">
+                <tr class="empty-row"><td colspan="6">No events yet — generate one to begin.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel panel-activity">
+          <div class="panel-head">
+            <h2>Activity feed</h2>
+          </div>
+          <ul class="activity-list" id="activity-list">
+            <li class="activity-empty">No activity yet.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- BLOCKCHAIN ---------------- -->
+    <section class="view" id="view-blockchain">
+      <header class="view-header">
+        <div>
+          <h1>Blockchain</h1>
+          <p class="sub">Each block commits to the log it fingerprints and the hash of the block before it.</p>
+        </div>
+      </header>
+
+      <div class="split split-blockchain">
+        <div class="panel panel-chain">
+          <div class="panel-head">
+            <h2>Chain</h2>
+            <span class="panel-hint" id="chain-count">1 block</span>
+          </div>
+          <div class="chain-scroll" id="chain-list"></div>
+        </div>
+        <div class="panel panel-block-detail">
+          <div class="panel-head"><h2>Block detail</h2></div>
+          <div id="block-detail" class="block-detail-empty">Select a block to inspect its fields.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- ATTACK SIM ---------------- -->
+    <section class="view" id="view-attack">
+      <header class="view-header">
+        <div>
+          <h1>Attacker simulation</h1>
+          <p class="sub">Every action below edits only this app's own local database. Nothing here touches a real host or network.</p>
+        </div>
+      </header>
+
+      <div class="attack-grid">
+        <button class="attack-card" data-attack="modify">
+          <span class="attack-card-title">Modify log</span>
+          <span class="attack-card-desc">Silently rewrite a field on a stored log without updating its blockchain record.</span>
+        </button>
+        <button class="attack-card" data-attack="timestamp">
+          <span class="attack-card-title">Change timestamp</span>
+          <span class="attack-card-desc">Alter when a log claims to have happened, to obscure the true timeline.</span>
+        </button>
+        <button class="attack-card" data-attack="delete">
+          <span class="attack-card-title">Delete log</span>
+          <span class="attack-card-desc">Remove a log from local storage while its blockchain fingerprint remains.</span>
+        </button>
+        <button class="attack-card attack-card-severe" data-attack="tamper_blockchain">
+          <span class="attack-card-title">Tamper blockchain</span>
+          <span class="attack-card-desc">Rewrite a block's previous-hash link directly, breaking the chain.</span>
+        </button>
+      </div>
+
+      <div class="demo-banner">
+        <div>
+          <h3>Run full attack demo</h3>
+          <p>Generates baseline traffic, simulates an intrusion, secures it on-chain, then modifies and deletes evidence and re-verifies — narrated step by step.</p>
+        </div>
+        <button class="btn btn-primary btn-lg" id="run-demo-btn">Run full attack demo</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Attack log</h2></div>
+        <ul class="activity-list" id="attack-log-list">
+          <li class="activity-empty">No attacks simulated yet.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ---------------- VERIFY ---------------- -->
+    <section class="view" id="view-verify">
+      <header class="view-header">
+        <div>
+          <h1>Integrity verification</h1>
+          <p class="sub">Recomputes every log's SHA-256 hash and compares it against the blockchain record.</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" id="verify-btn">Verify all logs</button>
+        </div>
+      </header>
+
+      <div id="verify-summary" class="verify-summary-empty">
+        Run a verification sweep to see results here.
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Per-event results</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Event ID</th><th>Local hash</th><th>Blockchain hash</th><th>Result</th></tr>
+            </thead>
+            <tbody id="verify-table-body">
+              <tr class="empty-row"><td colspan="4">No verification run yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Alert overlay for tampering / deletion / chain-failure call-outs -->
+<div class="alert-stack" id="alert-stack"></div>
+
+<!-- Modal for user-driven attacker input -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modal-title">Attack</h3>
+      <button class="modal-close" id="modal-close">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="modal-confirm">Run attack</button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
